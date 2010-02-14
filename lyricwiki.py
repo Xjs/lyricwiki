@@ -4,7 +4,7 @@ lyricwiki.py -- get lyrics from lyrics.wikia.com
 usage: lyricwiki.py "Artist" "Song"
 """
 
-from sys import argv
+import sys
 from restkit import Resource
 import html5lib
 from html5lib import treebuilders
@@ -18,7 +18,10 @@ def url_from_api(artist, song):
     json = r.get('/api.php', fmt='json', artist=artist, song=song)
     json = json[6:].replace("'", '"') # replace needed because wikia doesn't provide us with valid JSON. [6:] needed because it says "song = " first.
     d = simplejson.loads(json)
-    return d['url']
+    if d['lyrics'] == 'Not found':
+        raise ValueError("No lyrics for {song} by {artist}".format(song=song, artist=artist))
+    else:
+        return d['url']
     
 def artist_song_from_api_url(url):
     """Get wiki-compatible artist, song tuple from URL retrieved from API"""
@@ -48,4 +51,8 @@ def lyrics(artist, song):
     artist_song = artist_song_from_api_url(api_url)
     return lyrics_from('http://lyrics.wikia.com/', 'index.php', title='{0}:{1}'.format(*artist_song), action='edit')
 
-print lyrics(*argv[1:])
+try:
+    print lyrics(*sys.argv[1:])
+except ValueError, e:
+    print >>sys.stderr, str(e)
+    sys.exit(1)
