@@ -22,6 +22,9 @@ def url_from_api(artist, song):
     """Get URL to lyrics article from lyrics.wikia.com API"""
     r =  Resource('http://lyrics.wikia.com', headers={'Accept':'application/json'})
     json = r.get('/api.php', fmt='json', artist=proper_unicode(artist), song=proper_unicode(song))
+    if not isinstance(json, basestring):
+        # Compatibility for restkit >= 0.9
+        json = json.unicode_body
     json = json[6:].replace("'", '"') # replace needed because wikia doesn't provide us with valid JSON. [6:] needed because it says "song = " first.
     d = simplejson.loads(json)
     if d['lyrics'] == 'Not found':
@@ -37,6 +40,8 @@ def artist_song_from_api_url(url):
 def edit_url_from(url):
     """Get URL to "edit this page" from a given lyrics page"""
     source = Resource(url).get()
+    if not isinstance(source, basestring):
+        source = source.unicode_body
     document = parser.parse(source)
     
     edit_link = document.find(".//{http://www.w3.org/1999/xhtml}a[@id='ca-edit']")
@@ -45,6 +50,8 @@ def edit_url_from(url):
 def lyrics_from(base_url, *arguments, **parameters):
     """Get lyrics string from an edit page"""
     edit_source = Resource(base_url).get(*arguments, **parameters)
+    if not isinstance(edit_source, basestring):
+        edit_source = edit_source.unicode_body
     edit_document = parser.parse(edit_source)
     
     wiki_source = edit_document.find(".//{http://www.w3.org/1999/xhtml}textarea[@id='wpTextbox1']").text
